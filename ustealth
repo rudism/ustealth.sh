@@ -1,0 +1,30 @@
+#!/bin/sh
+
+cmd=$1
+dev=$2
+
+if [ "$cmd" != "hide" ] && [ "$cmd" != "unhide" ] || [ -z $dev ]; then
+  echo 'Usage: ustealth COMMAND DEVICE'
+  echo 'COMMAND: hide   - corrupt the MBR'
+  echo '         unhide - fix the MBR'
+  echo 'DEVICE:  usb device (eg. /dev/sdb)'
+fi
+
+echo Extracting MBR...
+dd if=$dev of=/tmp/mbr.bin bs=512 count=1
+
+# make copy of MBR minus last byte
+dd if=/tmp/mbr.bin of=/tmp/mbrnew.bin bs=1 count=511
+
+if [ "$cmd" = "hide" ]; then
+  echo Corrupting MBR...
+  # set last byte to AB
+  echo -n -e '\xAB' >> /tmp/mbrnew.bin
+else
+  echo Fixing MBR...
+  # set last byte to AA
+  echo -n -e '\xAA' >> /tmp/mbrnew.bin
+fi
+
+echo Writing MBR to device...
+dd if=/tmp/mbrnew.bin of=$dev bs=512 count=1
